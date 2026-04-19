@@ -14,6 +14,30 @@ export type EvaluationResult = {
 
 export type TTSVoice = 'alloy' | 'echo' | 'fable' | 'onyx' | 'nova' | 'shimmer';
 
+export async function transcribeAudio(audioBlob: Blob): Promise<string> {
+  try {
+    // Determine file extension from blob mime type for Whisper compatibility
+    const mimeType = audioBlob.type || 'audio/webm';
+    let ext = 'webm';
+    if (mimeType.includes('mp4') || mimeType.includes('m4a')) ext = 'mp4';
+    else if (mimeType.includes('ogg')) ext = 'ogg';
+    else if (mimeType.includes('wav')) ext = 'wav';
+
+    const file = new File([audioBlob], `audio.${ext}`, { type: mimeType });
+
+    const response = await openai.audio.transcriptions.create({
+      model: 'whisper-1',
+      file: file,
+      language: 'en',
+    });
+
+    return response.text.trim();
+  } catch (error) {
+    console.error('Error transcribing audio:', error);
+    return '';
+  }
+}
+
 export async function generateSpeech(text: string, voice: TTSVoice = 'alloy'): Promise<string | null> {
   try {
     const response = await openai.audio.speech.create({
