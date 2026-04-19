@@ -245,9 +245,9 @@ export default function App() {
       mediaRecorderRef.current = null;
 
       if (blob.size < 1000) {
-        // Too small — user probably tapped by accident
+        // Too small — restart listening
         if (appStateRef.current === 'interviewing') {
-          setInteractionState('waiting');
+          startRecording();
         }
         return;
       }
@@ -256,7 +256,7 @@ export default function App() {
       const spokenText = await transcribeAudio(blob);
 
       if (!spokenText || appStateRef.current !== 'interviewing') {
-        setInteractionState('waiting');
+        if (appStateRef.current === 'interviewing') startRecording();
         return;
       }
 
@@ -303,7 +303,8 @@ export default function App() {
 
       const onDone = () => {
         if (appStateRef.current === 'interviewing') {
-          setInteractionState('waiting');
+          // Auto-restart mic — no tap needed
+          startRecording();
         }
       };
 
@@ -316,8 +317,8 @@ export default function App() {
         onDone();
       });
     } else {
-      // TTS failed — just go back to waiting so user can speak again
-      setInteractionState('waiting');
+      // TTS failed — restart mic so user can speak again
+      if (appStateRef.current === 'interviewing') startRecording();
     }
   };
 
@@ -328,9 +329,12 @@ export default function App() {
     unlockAudioContext();
 
     setAppState('interviewing');
+    appStateRef.current = 'interviewing';
     setTranscript([]);
     setEvaluation(null);
-    setInteractionState('waiting');
+
+    // Auto-start mic — user doesn't need to tap again
+    startRecording();
   };
 
   const endInterview = async () => {
@@ -373,11 +377,11 @@ export default function App() {
       // User taps again → stop recording and process
       stopRecordingAndProcess();
     } else if (interactionState === 'speaking') {
-      // Interrupt AI playback and go back to waiting
+      // Interrupt AI and immediately start listening
       cancelAudioPlayback();
-      setInteractionState('waiting');
+      startRecording();
     } else if (interactionState === 'waiting') {
-      // Start a new recording turn
+      // Fallback — shouldn't normally be reachable in hands-free mode
       startRecording();
     }
     // 'processing' — do nothing, wait for it to complete
@@ -393,11 +397,11 @@ export default function App() {
     if (appState === 'idle' || appState === 'completed') return 'Tap to Start';
     if (interactionState === 'listening') {
       if (silenceCountdown !== null && silenceCountdown > 0) return `Sending in ${silenceCountdown}s…`;
-      return 'Listening… (tap to send early)';
+      return 'Listening…';
     }
     if (interactionState === 'processing') return 'Processing…';
     if (interactionState === 'speaking') return 'Tap to Interrupt';
-    return 'Tap to Speak'; // waiting
+    return 'Starting mic…'; // brief waiting transition
   })();
 
   const micIcon = (() => {
