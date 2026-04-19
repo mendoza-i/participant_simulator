@@ -3,4 +3,25 @@
 body {
   font-family: 'Outfit', sans-serif;
   background-color: #020617; /* tailwind slate-950 */
+  /* Prevent iOS font size inflation when rotating */
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  /* Smooth momentum scrolling on iOS */
+  -webkit-overflow-scrolling: touch;
+  /* Prevent pull-to-refresh interfering with the app */
+  overscroll-behavior: none;
+}
+
+/* Hide scrollbars on the transcript area but keep functionality */
+main {
+  scrollbar-width: none;        /* Firefox */
+  -ms-overflow-style: none;     /* IE/Edge */
+}
+main::-webkit-scrollbar {
+  display: none;                /* Chrome/Safari/iOS */
+}
+
+/* Ensure tap targets are never too small on mobile */
+button {
+  touch-action: manipulation;
 }
